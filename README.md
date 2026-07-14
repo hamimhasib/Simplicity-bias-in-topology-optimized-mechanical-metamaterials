@@ -1,6 +1,8 @@
 # Topology optimized mechanical metamaterials are algorithmically simple
 
 The pipeline optimizes a periodic unit cell by the SIMP method, computes the effective stiffness tensor by periodic homogenization, measures the algorithmic complexity of the resulting topology under three estimators, and compares that complexity against random cells matched on solid fraction and feature scale.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21361351.svg)](https://doi.org/10.5281/zenodo.21361351)
+
 
 ## Installation
 
