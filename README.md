@@ -96,7 +96,7 @@ M denotes the number of distinct optima remaining after canonical deduplication.
 Figure generation is not included in this notebook. The figure code reads the checkpointed `.pkl` files and writes both `.svg` and `.png` output. Execute Sections 1 through 5 to define the engine and load the configuration, then run the figure code.
 
 ## N.B
-Claude Opus 5.5 has been used to reformat the source code for cleaner reproduction, please connect to the authors for more information
+Claude Opus 4.7 has been used to reformat the source code for cleaner reproduction, please connect to the authors for more information
 
 
 ```
