@@ -111,10 +111,7 @@ reported conclusion.
   discarded. Every δ reported in the manuscript and reproduced here is computed over
   converged, distinct optima only (see Section 4 output for exact counts).
 
-## License
 
-Code: [fill in — MIT, BSD-3-Clause, or Apache-2.0 are common for research code]
-Data: [fill in — CC-BY-4.0 is standard for Zenodo research data]
 
 
 
