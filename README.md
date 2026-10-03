@@ -1,107 +1,120 @@
 # Topology optimized mechanical metamaterials are algorithmically simple
-
-The pipeline optimizes a periodic unit cell by the SIMP method, computes the effective stiffness tensor by periodic homogenization, measures the algorithmic complexity of the resulting topology under three estimators, and compares that complexity against random cells matched on solid fraction and feature scale.
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21361351.svg)](https://doi.org/10.5281/zenodo.21361351)
 
+---
 
+## Start here
 
-## Installation
+Open **`reproduction.ipynb`** and run it top to bottom. It is self-contained: it loads
+every definition it needs from `Improved_Code_new.ipynb`, reads the checkpoints in
+`sweep_data/`, and recomputes every figure and every headline number in the manuscript,
+printing each one next to the value the paper reports.
 
-```bash
-pip install numpy scipy joblib pybdm matplotlib
+```
+pip install numpy scipy matplotlib joblib pybdm
+jupyter notebook reproduction.ipynb
 ```
 
-Python 3.9 or later is required. The `zlib` module is part of the standard library. Parallel execution is handled by `joblib` and defaults to the number of available cores.
+`pybdm` supplies the Block Decomposition Method estimator. If it is not installed, the
+notebook says so and continues with the other two estimators (CLZ, zlib), which is
+sufficient for every section except the BDM column of each table.
 
-## Usage
+Runtime on the full deposit: about three minutes for Sections 1 through 10. Two sections
+regenerate data the checkpoints do not store (surrogate cells for the Figure 2 baseline,
+and the continuous density field for the Figure 3 threshold sweep); both cache what they
+build on the first run, so a second run is under a minute. Section 11 is optional,
+switched off by default, and regenerates a single optimization from a random seed.
 
-Open `Source_Code.ipynb` and execute the sections in order.
-
-| Section | Contents |
+| section | what it reproduces |
 |---|---|
-| 1. Environment | Imports and dependency checks |
-| 2. Physics engine | Periodic homogenization, SIMP interpolation, density filter |
-| 3. Objectives and complexity | Objective functions and the three complexity estimators |
-| 4. Engine functions | Optimizer, baselines, statistics, sweeps |
-| 5. Configuration | Parameters |
-| 6. Physics validation | Verification of the homogenizer |
-| 7. Main generation | Optima, matched background, candidate pool |
-| 8. Gray-fraction control | Binarity of the converged optima |
-| 9. Baselines | Four random baseline constructions |
-| 10. Sweeps | Mesh resolution and base Poisson ratio |
+| 1 | environment and package versions |
+| 2 | loads the required functions from `Improved_Code_new.ipynb` |
+| 3 | four correctness checks on the homogenization solver |
+| 4 | structure and contents of the primary checkpoint |
+| 5 | **Figure 1** — δ = −1.00 for both objectives, three estimators, with margins |
+| 6 | **Figure 2** — builds the correlation-matched surrogates and recomputes δ |
+| 7 | **Figure 3** — regenerates optima with the density field and sweeps the threshold |
+| 8 | **Figure 4** — heavy-tailed neutral-set distribution; the 22 / 253 / ~1.4×10⁴ counts |
+| 9 | **Figure 5** — δ across filter radius, mesh resolution, base Poisson ratio |
+| 10 | every abstract-level claim next to the recomputed value |
+| 11 | optional: regenerate one shear optimum from seed 0 |
 
-Section 7 writes checkpoints to `sweep_data/` and is skipped when those files are present. The analysis and figures can therefore be regenerated without repeating the optimization.
+## What else is in this deposit
+
+| file | purpose |
+|---|---|
+| `reproduction.ipynb` | run this first; reproduces the whole paper |
+| `Improved_Code_new.ipynb` | the analysis notebook; defines every function `reproduction.ipynb` calls and is also where the original sweeps were generated |
+| `sweep_data/` | checkpointed results (see below) |
+| `requirements.txt` | pinned package versions |
+| `*.py` | standalone scripts for individual figures, kept for reference. Not required to run `reproduction.ipynb` |
+
+### `sweep_data/`
 
 ```
 sweep_data/
-├── data_rmin_{1.5,2.0,2.5,3.0}.pkl
-├── data_res_N{16,32,64}.pkl
-└── data_nu_{-0.8 … 0.45}.pkl
+├── data_rmin_1.5.pkl     primary condition — every figure, unless the caption says otherwise
+├── data_rmin_2.0.pkl     filter radius sweep
+├── data_rmin_2.5.pkl
+├── data_rmin_3.0.pkl
+├── data_res_N16.pkl      mesh resolution sweep
+├── data_res_N32.pkl
+├── data_res_N64.pkl
+└── data_nu_*.pkl         base Poisson ratio sweep, 7 files
 ```
 
-### Reduced configuration
+Each file is a pickled `dict` with three keys: `designs` (a `dict` keyed `"shear"` and
+`"dirx"`, each a list of optimization runs), `background` (filtered-random cells matched
+to the optima on solid fraction and feature scale), and `candidate_pool` (15 000 random
+cells drawn independently of the optimizer, used only for the neutral-set analysis of
+Figure 4).
 
-The default settings perform 2000 shear optimizations, 500 optimizations for each remaining objective, and construct a candidate pool of 15,000 cells. This requires several hours on a typical multi-core machine. For a first run, reduce the sample sizes in Section 5:
+Each run is a `dict` with fields `seed`, `xb` (the binarized 32×32 cell — this is what
+gets compressed), `C` (the 3×3 effective stiffness tensor, normalized to a solid phase
+with E₀ = 1), `conv` (whether the run's final continuation stage converged), and `iters`.
 
-```python
-N_PRIMARY = 50      # default 2000
-N_OTHER   = 50      # default 500
-AP_POOL   = 500     # default 15000
-```
+**If `sweep_data/` is missing from your copy**, `reproduction.ipynb` will say so and stop
+at Section 4 rather than fail silently later. The original sweeps can be regenerated from
+`Improved_Code_new.ipynb`, though the primary condition alone takes on the order of hours.
 
-## Parameters
+## Reproducibility
 
-All parameters are defined in Section 5.
+Every random draw is seeded. Optimization run *s* uses seed *s*; the filtered-random
+baseline uses seed 12345; the independent candidate pool uses seed 777. Re-running on the
+same package versions reproduces the deposited checkpoints bit for bit; different BLAS
+builds may shift the last few digits of an effective tensor, which does not change any
+reported conclusion.
 
-| Parameter | Default | Description |
-|---|---|---|
-| `N` | 32 | Elements per side of the unit cell |
-| `VOL` | 0.4 | Solid volume fraction |
-| `RMIN_LIST` | 1.5, 2.0, 2.5, 3.0 | Density-filter radius; 1.5 is the primary setting |
-| `N_LIST` | 16, 32, 64 | Mesh-resolution sweep |
-| `NU_LIST` | −0.8 to 0.45 | Base-material Poisson ratio sweep |
-| `MEASURES` | clz, zlib, bdm | Complexity estimators |
-| `N_PRIMARY` | 2000 | Shear optimizations at the primary setting |
-| `N_OTHER` | 500 | Optimizations per remaining objective |
-| `AP_POOL` | 15000 | Random candidate pool |
-| `BASELINE_N` | 800 | Cells per baseline construction |
-| `ITERS_PER` | 120 | Iteration budget per optimization |
-| `TOL` | 1e-3 | Convergence tolerance on the density field |
+## Known limitations of this deposit
 
-## Objectives
-
-Each objective is a component of the homogenized stiffness tensor in Voigt notation. The optimizer minimizes, so stiffness objectives are negated.
-
-| Name | Objective | Maximizes |
-|---|---|---|
-| `shear` | −C₃₃ | Shear stiffness |
-| `dirx` | −C₁₁ | Directional stiffness |
-| `aux` | +C₁₂ | Auxetic coupling |
-| `iso` | −(C₁₁+C₂₂)/2 | Isotropic stiffness |
-
-Two outcomes are expected and are not faults in the code. The isotropic objective does not satisfy the convergence criterion within the iteration budget and is excluded from the analysis. The auxetic objective converges, but all converged runs reduce to a single distinct topology, for which an effect size is not defined.
-
-## Interpretation of the output
-
-Cliff's δ is the effect size reported throughout:
-
-    δ = P(K_opt > K_rnd) − P(K_opt < K_rnd)
-
-estimated over all pairs of optima and baseline cells. It takes values in [−1, 1]. Because complexity is the measured variable, δ is negative when the optima are the simpler population. A value of −1 indicates complete separation, and |δ| ≥ 0.474 is the conventional threshold for a large effect.
-
-M denotes the number of distinct optima remaining after canonical deduplication. Where M is less than two, the effect size is undefined and the condition is reported as starved rather than assigned a value.
-
-## Figures
-
-Figure generation is not included in this notebook. The figure code reads the checkpointed `.pkl` files and writes both `.svg` and `.png` output. Execute Sections 1 through 5 to define the engine and load the configuration, then run the figure code.
-
-## N.B
-Claude Opus 4.7 has been used to reformat the source code for cleaner reproduction, please connect to the authors for more information
-
-
-```
-
+- **Topology counts depend on how two cells are judged equivalent.** The `key_of`
+  function in `Improved_Code_new.ipynb` quotients by the unit cell's rotation and
+  reflection symmetries but not by translation. Under periodic boundary conditions a
+  translated cell is the same material, so the neutral-set counts in Section 8 of
+  `reproduction.ipynb` — and in Figure 4 of the manuscript — are upper bounds, most
+  visibly for the directional objective, whose optima are laminates differing largely by
+  vertical offset.
+- **The continuous density field is not stored in `sweep_data/`.** Only the thresholded
+  `xb` is kept. Section 7 of `reproduction.ipynb` regenerates a small batch of runs with
+  the field retained in order to reproduce the Figure 3 threshold sweep; it does not use
+  the deposited checkpoints for this one section.
+- **Complexity values are not comparable across estimators.** zlib returns bytes, CLZ a
+  dimensionless phrase count, BDM a value in bits. Compare within one estimator only.
+- **The base material is dimensionless.** E₀ = 1 is a normalization: every reported
+  stiffness is a ratio to the solid phase. Multiply by a real E₀ to obtain values for a
+  specific material; results scale exactly because the governing equations are linear.
+  The base Poisson ratio does not scale this way, which is why it is swept separately
+  (Figure 5(c)).
+- **Shear converges on a small fraction of runs** at the primary filter radius. `conv` is
+  strict — a run counts as converged only if its last continuation stage settles below
+  the stated tolerance — and unconverged runs are kept in the deposit rather than
+  discarded. Every δ reported in the manuscript and reproduced here is computed over
+  converged, distinct optima only (see Section 4 output for exact counts).
 
 ## License
 
-Licensed under the Apache License, Version 2.0.
+Code: [fill in — MIT, BSD-3-Clause, or Apache-2.0 are common for research code]
+Data: [fill in — CC-BY-4.0 is standard for Zenodo research data]
+
+
+
